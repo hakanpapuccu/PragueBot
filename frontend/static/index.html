@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prague Concierge</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar (Optional for future use) -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-earth-europe"></i>
+                <span>PragueBot</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#" class="active"><i class="fa-solid fa-message"></i> Chat</a>
+                <a href="#"><i class="fa-solid fa-compass"></i> Explore</a>
+                <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <span class="name">Traveler</span>
+                    <span class="status">Online</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-interface">
+            <header class="chat-header">
+                <div class="header-info">
+                    <h2>Prague Guide Agent</h2>
+                    <p>Powered by Google Gemini & MCP</p>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                </div>
+            </header>
+
+            <div id="chat-box" class="chat-box">
+                <!-- Welcome Message -->
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <div class="bot-avatar"><i class="fa-solid fa-robot"></i></div>
+                        <div class="bubble">
+                            <p>Hello! I am your personal guide to Prague. I can help you with:</p>
+                            <ul>
+                                <li>Checking the weather ⛅</li>
+                                <li>Finding hotels 🏨</li>
+                                <li>Answering travel questions 🗺️</li>
+                            </ul>
+                            <p>How can I assist you today?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator (Hidden by default) -->
+            <div id="typing-indicator" class="typing-indicator hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Ask about Prague..."
+                        onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" onclick="sendMessage()">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
