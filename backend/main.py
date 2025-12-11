@@ -80,6 +80,10 @@ def safe_search_hotels(city: str, query: str = ""):
 # Register tools with Gemini
 tools = [safe_get_weather, safe_search_hotels]
 
+from fastapi.responses import StreamingResponse
+import json
+import asyncio
+
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     session_id = request.session_id
@@ -87,49 +91,95 @@ async def chat_endpoint(request: ChatRequest):
 
     if session_id not in chat_history:
         chat_history[session_id] = []
-        # System prompt or initial setup
-        # chat_history[session_id].append(types.Content(role="model", parts=[types.Part(text="Hello! I am your Prague Guide.")]))
 
     history = chat_history[session_id]
     
-    # Add user message
-    # history.append(types.Content(role="user", parts=[types.Part(text=user_msg)]))
-    
-    # Configure config with tools
+    # Enable tools but DISABLE automatic execution so we can intercept and notify
     generate_content_config = types.GenerateContentConfig(
         tools=tools,
-        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False)
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True) 
     )
 
-    # Call Gemini
-    # We use chat interface
-    try:
-        chat = client.chats.create(
-            model="gemini-2.5-flash",
-            config=generate_content_config,
-            history=history
-        )
-        
-        response = chat.send_message(user_msg)
-        
-        # In this SDK version, use get_history() or similar if available, 
-        # or rely on the fact that if we pass 'history' list, does it update it in place?
-        # The 'get_history' method exists per inspection.
-        # But 'history' passed to Create might be used for initialization.
-        # Let's try retrieves history via method.
-        # Actually, let's look at the inspection output again: 'get_history'
-        chat_history[session_id] = chat.get_history()
-        
-        return {"response": response.text}
-    except errors.ClientError as e:
-        print(f"Gemini API Error: {e}")
-        error_msg = str(e)
-        if "429" in error_msg:
-            return {"response": "⚠️ **Rate Limit Exceeded**: I'm feeling a bit overwhelmed! Please try again in 30 seconds."}
-        return {"response": f"⚠️ **Error**: Something went wrong with the AI provider. ({e})"}
-    except Exception as e:
-        print(f"Unexpected Error: {e}")
-        return {"response": f"⚠️ **System Error**: An unexpected error occurred. ({e})"}
+    async def event_generator():
+        try:
+            # 1. Send User Message
+            chat = client.chats.create(
+                model="gemini-1.5-flash",
+                config=generate_content_config,
+                history=history
+            )
+            
+            response = chat.send_message(user_msg)
+            
+            # 2. Loop to handle function calls
+            while True:
+                # Check if the model wants to call a function
+                function_call_part = None
+                for part in response.candidates[0].content.parts:
+                    if part.function_call:
+                        function_call_part = part.function_call
+                        break
+                
+                if function_call_part:
+                    fn_name = function_call_part.name
+                    fn_args = function_call_part.args
+                    
+                    # Notify Frontend: Thinking...
+                    yield json.dumps({"type": "status", "content": f"🛠️ Using tool: {fn_name}..."}) + "\n"
+                    
+                    # Execute Tool
+                    tool_result = "Error executing tool"
+                    try:
+                        if fn_name == "safe_get_weather":
+                            tool_result = safe_get_weather(**fn_args)
+                        elif fn_name == "safe_search_hotels":
+                            tool_result = safe_search_hotels(**fn_args)
+                        else:
+                            tool_result = f"Unknown tool: {fn_name}"
+                    except Exception as e:
+                        tool_result = f"Tool Execution Error: {e}"
+                        
+                    # Send result back to model
+                    # We need to construct the function response part properly
+                    # response = chat.send_message(
+                    #    types.Content(
+                    #        role="tool", 
+                    #        parts=[types.Part(
+                    #             function_response=types.FunctionResponse(
+                    #                 name=fn_name,
+                    #                 response={"result": tool_result}
+                    #             )
+                    #        )]
+                    #    )
+                    # )
+                    # The SDK simplifies this usually, but manually:
+                    response = chat.send_message(
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name=fn_name,
+                                response={"result": tool_result}
+                            )
+                        )
+                    )
+                else:
+                    # No function call, just text response
+                    break
+
+            # 3. Final Response
+            final_text = response.text
+            yield json.dumps({"type": "response", "content": final_text}) + "\n"
+            
+            # Save History
+            chat_history[session_id] = chat.get_history()
+
+        except errors.ClientError as e:
+            print(f"Gemini API Error: {e}")
+            yield json.dumps({"type": "error", "content": f"⚠️ Rate Limit/API Error: {e}"}) + "\n"
+        except Exception as e:
+            print(f"Unexpected Error: {e}")
+            yield json.dumps({"type": "error", "content": f"⚠️ System Error: {e}"}) + "\n"
+
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
 @app.get("/history")
 async def get_history(session_id: str = "default"):

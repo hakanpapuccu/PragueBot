@@ -20,22 +20,56 @@ async function sendMessage() {
             body: JSON.stringify({ message: message, session_id: "user1" }),
         });
 
-        const data = await response.json();
-
-        // Hide typing indicator
+        // Hide typing indicator immediately as we will show status updates
         document.getElementById('typing-indicator').classList.add('hidden');
 
-        if (response.ok) {
-            // Check if response is null/undefined or empty
-            const botText = data.response;
-            if (botText) {
-                addMessage(botText, 'bot-message');
-            } else {
-                addMessage("*Thinking...* (No text response)", 'bot-message');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        let thinkingId = null;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            // Handle multiple lines in one chunk
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const data = JSON.parse(line);
+
+                    if (data.type === 'status') {
+                        // Update or Create "Thinking" bubble
+                        if (!thinkingId) {
+                            thinkingId = addMessage("", 'bot-message', true); // true = raw/html mode or status
+                        }
+                        // Update the content of the thinking bubble
+                        updateMessage(thinkingId, `<i class="fa-solid fa-gear fa-spin"></i> ${data.content}`);
+                    }
+                    else if (data.type === 'response') {
+                        // Remove thinking bubble or turn it into response?
+                        // Better: Keep thinking history? No, user wants to see what it's doing.
+                        // Let's finalize the thinking bubble and add a NEW bubble for response
+                        // OR replace the thinking bubble if it was just a placeholder.
+                        if (thinkingId) {
+                            // Allow it to stay as log, or remove? 
+                            // Let's keep it as "Process" log.
+                            // Actually, let's remove the spinner from it.
+                            updateMessage(thinkingId, `<i class="fa-solid fa-check"></i> ${document.getElementById(thinkingId).innerText}`);
+                        }
+                        addMessage(data.content, 'bot-message');
+                    }
+                    else if (data.type === 'error') {
+                        addMessage(data.content, 'bot-message');
+                    }
+                } catch (e) {
+                    console.error("Error parsing JSON chunk", e);
+                }
             }
-        } else {
-            console.error('Server Error:', data);
-            addMessage(`❌ Server Error: ${response.status}`, 'bot-message');
         }
 
     } catch (error) {
@@ -45,12 +79,14 @@ async function sendMessage() {
     }
 }
 
-function addMessage(text, className) {
+function addMessage(text, className, isStatus = false) {
     const chatBox = document.getElementById('chat-box');
+    const msgId = 'msg-' + Date.now() + Math.random().toString(36).substr(2, 9);
 
     // Wrapper
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', className);
+    messageDiv.id = msgId; // Set unique ID
 
     // Content Container
     const contentDiv = document.createElement('div');
@@ -67,12 +103,19 @@ function addMessage(text, className) {
     // Bubble
     const bubble = document.createElement('div');
     bubble.classList.add('bubble');
+    // ID for bubble content update
+    bubble.id = msgId + '-bubble';
 
     if (className === 'bot-message') {
-        // Render Markdown for bot
-        bubble.innerHTML = marked.parse(text);
+        if (isStatus) {
+            bubble.innerHTML = text; // HTML for icons
+            bubble.style.fontStyle = 'italic';
+            bubble.style.color = '#666';
+            bubble.style.background = '#f8f9fa';
+        } else {
+            bubble.innerHTML = marked.parse(text);
+        }
     } else {
-        // Plain text for user (prevention of XSS if we were persisting)
         bubble.innerText = text;
     }
 
@@ -81,6 +124,15 @@ function addMessage(text, className) {
     chatBox.appendChild(messageDiv);
 
     scrollToBottom();
+    return bubble.id; // Return the internal bubble ID
+}
+
+function updateMessage(elementId, htmlContent) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.innerHTML = htmlContent;
+        scrollToBottom();
+    }
 }
 
 function scrollToBottom() {
