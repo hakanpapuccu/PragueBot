@@ -3,6 +3,10 @@ async function sendMessage() {
     const message = inputField.value.trim();
     if (!message) return;
 
+    // Get selected model
+    const modelSelect = document.getElementById('model-select');
+    const selectedModel = modelSelect ? modelSelect.value : "gemini-1.5-flash";
+
     // Add user message
     addMessage(message, 'user-message');
     inputField.value = '';
@@ -17,7 +21,11 @@ async function sendMessage() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message: message, session_id: "user1" }),
+            body: JSON.stringify({
+                message: message,
+                session_id: "user1",
+                model_name: selectedModel
+            }),
         });
 
         // Hide typing indicator immediately as we will show status updates
@@ -144,4 +152,37 @@ function handleKeyPress(event) {
     if (event.key === 'Enter') {
         sendMessage();
     }
+}
+
+// UI Functions
+function switchView(viewName) {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(el => {
+        el.classList.remove('active-view');
+        el.classList.add('hidden');
+    });
+
+    // Show selected view
+    const target = document.getElementById(viewName + '-view');
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('active-view');
+    }
+
+    // Update nav state
+    document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+    document.getElementById('nav-' + viewName).classList.add('active');
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('theme-' + theme).classList.add('active');
+}
+
+function usePrompt(text) {
+    switchView('chat');
+    document.getElementById('user-input').value = text;
+    // Optional: Auto send
+    // sendMessage();
 }

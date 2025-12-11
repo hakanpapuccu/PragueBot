@@ -2,6 +2,7 @@ from mcp.server.fastmcp import FastMCP
 import httpx
 from duckduckgo_search import DDGS
 import json
+import wikipedia
 
 # Create an MCP server
 mcp = FastMCP("Prague Guide Tools")
@@ -37,3 +38,24 @@ def search_hotels(city: str, query: str = "") -> str:
 
 if __name__ == "__main__":
     mcp.run()
+
+@mcp.tool()
+def search_wikipedia(query: str, lang: str = "tr") -> str:
+    """Search Wikipedia for a given query and return the summary."""
+    try:
+        wikipedia.set_lang(lang)
+        # Search for the page
+        search_results = wikipedia.search(query)
+        if not search_results:
+            return "No Wikipedia results found."
+        
+        # Get the first result's summary
+        page_title = search_results[0]
+        summary = wikipedia.summary(page_title, sentences=5)
+        return f"**Wikipedia ({page_title}):**\n{summary}\n\n[Read more]({wikipedia.page(page_title).url})"
+    except wikipedia.exceptions.DisambiguationError as e:
+        return f"Ambiguous query. Options: {', '.join(e.options[:5])}"
+    except wikipedia.exceptions.PageError:
+        return "Page not found on Wikipedia."
+    except Exception as e:
+        return f"Wikipedia Error: {e}"

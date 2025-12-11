@@ -59,7 +59,9 @@ import os
 # Ensure backend directory is in path if needed (it usually is if running from root)
 sys.path.append(os.path.join(os.getcwd(), "backend"))
 
-from backend.tools.mcp_server import get_weather, search_hotels
+sys.path.append(os.path.join(os.getcwd(), "backend"))
+
+from backend.tools.mcp_server import get_weather, search_hotels, search_wikipedia
 
 # Refine wrapper functions if needed, or use directly.
 # The decorators in mcp_server might wrap them. 
@@ -77,8 +79,12 @@ def safe_search_hotels(city: str, query: str = ""):
     """Search real hotels."""
     return search_hotels(city, query)
 
+def safe_search_wikipedia(query: str):
+    """Search Wikipedia for general information."""
+    return search_wikipedia(query)
+
 # Register tools with Gemini
-tools = [safe_get_weather, safe_search_hotels]
+tools = [safe_get_weather, safe_search_hotels, safe_search_wikipedia]
 
 from fastapi.responses import StreamingResponse
 import json
@@ -88,6 +94,7 @@ import asyncio
 async def chat_endpoint(request: ChatRequest):
     session_id = request.session_id
     user_msg = request.message
+    model_to_use = request.model_name
 
     if session_id not in chat_history:
         chat_history[session_id] = []
@@ -104,7 +111,7 @@ async def chat_endpoint(request: ChatRequest):
         try:
             # 1. Send User Message
             chat = client.chats.create(
-                model="gemini-1.5-flash",
+                model=model_to_use, 
                 config=generate_content_config,
                 history=history
             )
@@ -134,6 +141,8 @@ async def chat_endpoint(request: ChatRequest):
                             tool_result = safe_get_weather(**fn_args)
                         elif fn_name == "safe_search_hotels":
                             tool_result = safe_search_hotels(**fn_args)
+                        elif fn_name == "safe_search_wikipedia":
+                            tool_result = safe_search_wikipedia(**fn_args)
                         else:
                             tool_result = f"Unknown tool: {fn_name}"
                     except Exception as e:

@@ -25,9 +25,12 @@
                 <span>PragueBot</span>
             </div>
             <nav class="nav-links">
-                <a href="#" class="active"><i class="fa-solid fa-message"></i> Chat</a>
-                <a href="#"><i class="fa-solid fa-compass"></i> Explore</a>
-                <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#" id="nav-chat" class="active" onclick="switchView('chat')"><i
+                        class="fa-solid fa-message"></i> Chat</a>
+                <a href="#" id="nav-explore" onclick="switchView('explore')"><i class="fa-solid fa-compass"></i>
+                    Explore</a>
+                <a href="#" id="nav-settings" onclick="switchView('settings')"><i class="fa-solid fa-gear"></i>
+                    Settings</a>
             </nav>
             <div class="user-profile">
                 <div class="avatar">
@@ -41,51 +44,114 @@
         </aside>
 
         <!-- Main Chat Area -->
-        <main class="chat-interface">
-            <header class="chat-header">
-                <div class="header-info">
-                    <h2>Prague Guide Agent</h2>
-                    <p>Powered by Google Gemini & MCP</p>
-                </div>
-                <div class="header-actions">
-                    <button class="icon-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                </div>
-            </header>
+        <main class="content-area">
 
-            <div id="chat-box" class="chat-box">
-                <!-- Welcome Message -->
-                <div class="message bot-message">
-                    <div class="message-content">
-                        <div class="bot-avatar"><i class="fa-solid fa-robot"></i></div>
-                        <div class="bubble">
-                            <p>Hello! I am your personal guide to Prague. I can help you with:</p>
-                            <ul>
-                                <li>Checking the weather ⛅</li>
-                                <li>Finding hotels 🏨</li>
-                                <li>Answering travel questions 🗺️</li>
-                            </ul>
-                            <p>How can I assist you today?</p>
+            <!-- Chat View -->
+            <section id="chat-view" class="view-section active-view">
+                <header class="chat-header">
+                    <div class="header-info">
+                        <h2>Prague Guide Agent</h2>
+                        <p>Powered by Google Gemini & MCP</p>
+                    </div>
+                </header>
+
+                <div id="chat-box" class="chat-box">
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            <div class="bot-avatar"><i class="fa-solid fa-robot"></i></div>
+                            <div class="bubble">
+                                <p>Merhaba! Ben Prag rehberinizim. Size nasıl yardımcı olabilirim? 🇨🇿</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Typing Indicator (Hidden by default) -->
-            <div id="typing-indicator" class="typing-indicator hidden">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-
-            <div class="input-area">
-                <div class="input-wrapper">
-                    <input type="text" id="user-input" placeholder="Ask about Prague..."
-                        onkeypress="handleKeyPress(event)">
-                    <button class="send-btn" onclick="sendMessage()">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
+                <div id="typing-indicator" class="typing-indicator hidden">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
-            </div>
+
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input type="text" id="user-input" placeholder="Prag hakkında sor..."
+                            onkeypress="handleKeyPress(event)">
+                        <button class="send-btn" onclick="sendMessage()">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Explore View -->
+            <section id="explore-view" class="view-section hidden">
+                <header class="chat-header">
+                    <h2>📚 Uygulama Rehberi</h2>
+                </header>
+                <div class="explore-content">
+                    <div class="info-card">
+                        <h3>Nedir bu Uygulama?</h3>
+                        <p>Bu uygulama, Google Gemini modelini ve MCP (Model Context Protocol) teknolojisini kullanan
+                            akıllı bir Prag seyahat asistanıdır. Sadece sohbet etmekle kalmaz, gerçek zamanlı araçlar
+                            kullanarak size güncel bilgiler sunar.</p>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Ne İşe Yarar?</h3>
+                        <ul>
+                            <li><strong>Hava Durumu:</strong> Prag (veya başka şehirlerin) anlık hava durumunu
+                                sorgulayabilirsiniz.</li>
+                            <li><strong>Otel Arama:</strong> Bütçenize ve zevkinize uygun otelleri internetten arayıp
+                                bulabilir.</li>
+                            <li><strong>Genel Bilgi:</strong> Prag tarihi, kültürü ve gezilecek yerleri hakkında sohbet
+                                edebilirsiniz.</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Nasıl Kullanılır? (Prompt Örnekleri)</h3>
+                        <div class="prompt-example" onclick="usePrompt('Prag\'da hava nasıl?')">
+                            "Prag'da hava nasıl?"
+                        </div>
+                        <div class="prompt-example"
+                            onclick="usePrompt('Eski Şehir meydanına yakın, uygun fiyatlı otel bulabilir misin?')">
+                            "Eski Şehir meydanına yakın, uygun fiyatlı otel bulabilir misin?"
+                        </div>
+                        <div class="prompt-example" onclick="usePrompt('Charles Köprüsü hakkında bilgi ver.')">
+                            "Charles Köprüsü hakkında bilgi ver."
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="settings-view" class="view-section hidden">
+                <header class="chat-header">
+                    <h2>⚙️ Ayarlar</h2>
+                </header>
+                <div class="settings-content">
+                    <div class="setting-item">
+                        <label>Tema Seçimi</label>
+                        <div class="theme-toggle">
+                            <button id="theme-light" class="theme-btn active" onclick="setTheme('light')"><i
+                                    class="fa-solid fa-sun"></i> Açık</button>
+                            <button id="theme-dark" class="theme-btn" onclick="setTheme('dark')"><i
+                                    class="fa-solid fa-moon"></i> Koyu</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Yapay Zeka Modeli</label>
+                        <select id="model-select">
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Hızlı)</option>
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Gelişmiş)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Daha Akıllı)</option>
+                        </select>
+                        <p class="setting-note">Flash modelleri daha hızlıdır, Pro modelleri daha detaylı analiz
+                            yapabilir.</p>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
     <script src="app.js"></script>
